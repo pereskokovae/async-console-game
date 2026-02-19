@@ -46,8 +46,8 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
-async def blink(canvas, row, column, symbol='*'):
-    await sleep_ticks(random.randint(0, 20))
+async def blink(canvas, row, column, offset_tics, symbol='*'):
+    await sleep_ticks(offset_tics)
 
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
@@ -74,22 +74,26 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
     prev_row, prev_col = row, column
     prev_frame = frames[0]
 
-    for frame in itertools.cycle(frames):
+    doubled_frames = []
+    for frame in frames:
+        doubled_frames.extend([frame, frame])
+
+    for frame in itertools.cycle(doubled_frames):
         draw_frame(canvas, prev_row, prev_col, prev_frame, negative=True)
 
         rows_direction, columns_direction, _ = read_controls(canvas)
         row += rows_direction
         column += columns_direction
 
-        max_row, max_column = canvas.getmaxyx()
+        max_row, max_col = canvas.getmaxyx()
         row = clamp(row, 1, max_row - frame_height - 1)
-        column = clamp(column, 1, max_column - frame_width - 1)
+        column = clamp(column, 1, max_col - frame_width - 1)
 
         draw_frame(canvas, row, column, frame)
 
         prev_row, prev_col, prev_frame = row, column, frame
 
-        await sleep_ticks(2)
+        await sleep_ticks(1)
 
 
 def draw(canvas):
@@ -103,7 +107,9 @@ def draw(canvas):
     for _ in range(100):
         row = random.randint(1, max_row - 2)
         col = random.randint(1, max_column - 2)
-        coroutines.append(blink(canvas, row, col, random.choice(STAR_SYMBOLS)))
+        offset_tics = random.randint(0, 20)
+        symbol = random.choice(STAR_SYMBOLS)
+        coroutines.append(blink(canvas, row, col, offset_tics, symbol))
 
     frames = load_frames()
     h, w = get_frame_size(frames[0])
