@@ -6,6 +6,7 @@ import time
 
 from curses_tools import draw_frame, get_frame_size, read_controls
 from space_garbage import fly_garbage
+from physics import update_speed
 
 
 TIC_TIMEOUT = 0.1
@@ -28,7 +29,7 @@ def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
 
 
-async def sleep_ticks(ticks=1):
+async def sleep(ticks=1):
     for _ in range(ticks):
         await asyncio.sleep(0)
 
@@ -45,10 +46,10 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     row, column = start_row, start_column
 
     canvas.addstr(round(row), round(column), '*')
-    await asyncio.sleep(0)
+    await sleep(1)
 
     canvas.addstr(round(row), round(column), 'O')
-    await asyncio.sleep(0)
+    await sleep(1)
 
     canvas.addstr(round(row), round(column), ' ')
     row += rows_speed
@@ -61,7 +62,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
     while 0 < row < max_row and 0 < column < max_column:
         canvas.addstr(round(row), round(column), symbol)
-        await asyncio.sleep(0)
+        await sleep(0)
 
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
@@ -69,24 +70,27 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 
 async def blink(canvas, row, column, offset_tics=0, symbol='*'):
-    await sleep_ticks(offset_tics)
+    await sleep(offset_tics)
 
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        await sleep_ticks(20)
+        await sleep(20)
 
         canvas.addstr(row, column, symbol)
-        await sleep_ticks(3)
+        await sleep(3)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        await sleep_ticks(5)
+        await sleep(5)
 
         canvas.addstr(row, column, symbol)
-        await sleep_ticks(3)
+        await sleep(3)
 
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
     row, column = start_row, start_column
+    row_speed = 0
+    column_speed = 0
+
     frame_height, frame_width = get_frame_size(frames[0])
 
     prev_row, prev_column = row, column
@@ -94,25 +98,31 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
 
     animation_frames = []
     for frame in frames:
-        animation_frames.extend([frame, frame])
+        animation_frames.extend([frame, frame]) 
 
     for frame in itertools.cycle(animation_frames):
-
-        draw_frame(canvas, prev_row, prev_column, prev_frame, negative=True)
+        draw_frame(canvas, int(prev_row), int(prev_column), prev_frame, negative=True)
 
         rows_direction, columns_direction, _ = read_controls(canvas)
-        row += rows_direction
-        column += columns_direction
-        
+
+        row_speed, column_speed = update_speed(
+            row_speed,
+            column_speed,
+            rows_direction,
+            columns_direction
+        )
+
+        row += row_speed
+        column += column_speed
+
         max_row, max_column = canvas.getmaxyx()
         row = clamp(row, 1, max_row - frame_height - 1)
         column = clamp(column, 1, max_column - frame_width - 1)
 
-        draw_frame(canvas, row, column, frame)
+        draw_frame(canvas, int(row), int(column), frame)
 
         prev_row, prev_column, prev_frame = row, column, frame
-
-        await sleep_ticks(1)
+        await sleep(1)
 
 
 async def fill_orbit_with_garbage(canvas, garbage_frames):
@@ -127,7 +137,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
         coroutines.append(
             fly_garbage(canvas, column=column, garbage_frame=garbage_frame)
         )
-        await sleep_ticks(10)
+        await sleep(10)
 
 
 def draw(canvas):
