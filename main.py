@@ -7,7 +7,7 @@ import time
 from curses_tools import draw_frame, get_frame_size, read_controls
 from space_garbage import fly_garbage, obstacles, obstacles_in_last_collisions
 from physics import update_speed
-from obstacles import show_obstacles
+from game_over import show_gameover
 
 
 TIC_TIMEOUT = 0.1
@@ -106,7 +106,7 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
 
     animation_frames = []
     for frame in frames:
-        animation_frames.extend([frame, frame])  
+        animation_frames.extend([frame, frame])
 
     for frame in itertools.cycle(animation_frames):
         draw_frame(canvas, int(prev_row), int(prev_column), prev_frame, negative=True)
@@ -126,6 +126,11 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
         max_row, max_column = canvas.getmaxyx()
         row = clamp(row, 1, max_row - frame_height - 1)
         column = clamp(column, 1, max_column - frame_width - 1)
+
+        for obstacle in obstacles:
+            if obstacle.has_collision(row, column, frame_height, frame_width):
+                coroutines.append(show_gameover(canvas, sleep))
+                return
 
         if space_pressed:
             gun_row = row - 1
@@ -181,10 +186,6 @@ def draw(canvas):
 
     coroutines.append(
         animate_spaceship(canvas, center_row, center_column, ship_frames)
-    )
-
-    coroutines.append(
-        show_obstacles(canvas, obstacles)
     )
 
     garbage_frames = load_frames(GARBAGE_FRAMES_FILES)
