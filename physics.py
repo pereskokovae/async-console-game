@@ -52,10 +52,10 @@ def update_speed(row_speed, column_speed, rows_direction, columns_direction, row
 
     if columns_direction not in (-1, 0, 1):
         raise ValueError(f'Wrong columns_direction value {columns_direction}. Expects -1, 0 or 1.')
-    
+
     if fading < 0 or fading > 1:
         raise ValueError(f'Wrong columns_direction value {fading}. Expects float between 0 and 1.')
-        
+
     row_speed *= fading
     column_speed *= fading
 

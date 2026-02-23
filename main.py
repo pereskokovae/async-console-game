@@ -5,8 +5,9 @@ import random
 import time
 
 from curses_tools import draw_frame, get_frame_size, read_controls
-from space_garbage import fly_garbage
+from space_garbage import fly_garbage, obstacles 
 from physics import update_speed
+from obstacles import show_obstacles
 
 
 TIC_TIMEOUT = 0.1
@@ -87,6 +88,8 @@ async def blink(canvas, row, column, offset_tics=0, symbol='*'):
 
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
+    global coroutines
+
     row, column = start_row, start_column
     row_speed = 0
     column_speed = 0
@@ -98,12 +101,12 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
 
     animation_frames = []
     for frame in frames:
-        animation_frames.extend([frame, frame]) 
+        animation_frames.extend([frame, frame])  
 
     for frame in itertools.cycle(animation_frames):
         draw_frame(canvas, int(prev_row), int(prev_column), prev_frame, negative=True)
 
-        rows_direction, columns_direction, _ = read_controls(canvas)
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
 
         row_speed, column_speed = update_speed(
             row_speed,
@@ -118,6 +121,11 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
         max_row, max_column = canvas.getmaxyx()
         row = clamp(row, 1, max_row - frame_height - 1)
         column = clamp(column, 1, max_column - frame_width - 1)
+
+        if space_pressed:
+            gun_row = row - 1
+            gun_column = column + frame_width // 2
+            coroutines.append(fire(canvas, gun_row, gun_column))
 
         draw_frame(canvas, int(row), int(column), frame)
 
@@ -171,8 +179,8 @@ def draw(canvas):
     )
 
     coroutines.append(
-        fire(canvas, max_row // 2, max_column // 2)
-    )
+            show_obstacles(canvas, obstacles)
+        )
 
     garbage_frames = load_frames(GARBAGE_FRAMES_FILES)
     coroutines.append(
