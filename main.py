@@ -62,8 +62,12 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     curses.beep()
 
     while 0 < row < max_row and 0 < column < max_column:
+        for obstacle in obstacles:
+            if obstacle.has_collision(row, column):
+                return
+
         canvas.addstr(round(row), round(column), symbol)
-        await sleep(0)
+        await sleep(1)
 
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
@@ -178,9 +182,9 @@ def draw(canvas):
         animate_spaceship(canvas, center_row, center_column, ship_frames)
     )
 
-    coroutines.append(
-            show_obstacles(canvas, obstacles)
-        )
+#    coroutines.append(
+#           show_obstacles(canvas, obstacles)
+#       )
 
     garbage_frames = load_frames(GARBAGE_FRAMES_FILES)
     coroutines.append(
