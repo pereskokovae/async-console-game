@@ -8,6 +8,7 @@ from curses_tools import draw_frame, get_frame_size, read_controls
 from space_garbage import fly_garbage, obstacles, obstacles_in_last_collisions
 from physics import update_speed
 from game_over import show_gameover
+from game_scenario import PHRASES, get_garbage_delay_tics
 
 
 TIC_TIMEOUT = 0.1
@@ -22,7 +23,7 @@ GARBAGE_FRAMES_FILES = (
     'trash_small.txt',
     'trash_xl.txt',
 )
-
+year = 1957
 coroutines = []
 
 
@@ -41,6 +42,23 @@ def load_frames(filenames):
         with open(filename, encoding='utf-8') as file:
             frames.append(file.read())
     return frames
+
+
+async def change_year():
+    global year
+    while True:
+        await sleep(15)
+        year += 1
+
+
+async def draw_year(canvas):
+    while True:
+        canvas.erase()
+        phrase = PHRASES.get(year, '')
+        canvas.addstr(0, 0, f'Year: {year}')
+        if phrase:
+            canvas.addstr(1, 0, phrase)
+        await sleep(1)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -132,7 +150,7 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
                 coroutines.append(show_gameover(canvas, sleep))
                 return
 
-        if space_pressed:
+        if space_pressed and year >= 2020:
             gun_row = row - 1
             gun_column = column + frame_width // 2
             coroutines.append(fire(canvas, gun_row, gun_column))
@@ -144,18 +162,24 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
 
 
 async def fill_orbit_with_garbage(canvas, garbage_frames):
-    global coroutines
+    global coroutines, year
 
     while True:
-        _, max_column = canvas.getmaxyx()
+        delay = get_garbage_delay_tics(year)
 
+        if delay is None:
+            await sleep(1)
+            continue
+
+        _, max_column = canvas.getmaxyx()
         garbage_frame = random.choice(garbage_frames)
         column = random.randint(1, max_column - 2)
 
         coroutines.append(
             fly_garbage(canvas, column=column, garbage_frame=garbage_frame)
         )
-        await sleep(10)
+
+        await sleep(delay)
 
 
 def draw(canvas):
@@ -167,6 +191,10 @@ def draw(canvas):
     canvas.border()
 
     max_row, max_column = canvas.getmaxyx()
+    info_window = canvas.derwin(2, max_column - 2, max_row - 3, 1)
+
+    coroutines.append(change_year())
+    coroutines.append(draw_year(info_window))
 
     for _ in range(100):
         row = random.randint(1, max_row - 2)
