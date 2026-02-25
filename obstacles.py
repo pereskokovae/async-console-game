@@ -11,16 +11,8 @@ class Obstacle:
         self.columns_size = columns_size
         self.uid = uid
 
-    def get_bounding_box_frame(self):
-        rows, columns = self.rows_size + 1, self.columns_size + 1
-        return '\n'.join(_get_bounding_box_lines(rows, columns))
-
     def get_bounding_box_corner_pos(self):
         return self.row - 1, self.column - 1
-
-    def dump_bounding_box(self):
-        row, column = self.get_bounding_box_corner_pos()
-        return row, column, self.get_bounding_box_frame()
 
     def has_collision(self, obj_corner_row, obj_corner_column, obj_size_rows=1, obj_size_columns=1):
         '''Determine if collision has occured. Return True or False.'''
@@ -30,32 +22,6 @@ class Obstacle:
             (obj_corner_row, obj_corner_column),
             (obj_size_rows, obj_size_columns),
         )
-
-
-def _get_bounding_box_lines(rows, columns):
-
-    yield ' ' + '-' * columns + ' '
-    for _ in range(rows):
-        yield '|' + ' ' * columns + '|'
-    yield ' ' + '-' * columns + ' '
-
-
-async def show_obstacles(canvas, obstacles):
-    """Display bounding boxes of every obstacle in a list"""
-    
-    while True:
-        boxes = []
-
-        for obstacle in obstacles:
-            boxes.append(obstacle.dump_bounding_box())
-        
-        for row, column, frame in boxes:
-            draw_frame(canvas, row, column, frame)
-
-        await asyncio.sleep(0)
-
-        for row, column, frame in boxes:
-            draw_frame(canvas, row, column, frame, negative=True)
 
 
 def _is_point_inside(corner_row, corner_column, size_rows, size_columns, point_row, point_row_column):

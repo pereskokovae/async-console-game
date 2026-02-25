@@ -4,6 +4,8 @@ import itertools
 import random
 import time
 
+from pathlib import Path
+
 from curses_tools import draw_frame, get_frame_size, read_controls
 from space_garbage import fly_garbage, obstacles, obstacles_in_last_collisions
 from physics import update_speed
@@ -14,15 +16,9 @@ from game_scenario import PHRASES, get_garbage_delay_tics
 TIC_TIMEOUT = 0.1
 
 STAR_SYMBOLS = ('*', '+', '.', ':')
-SHIP_FRAMES_FILES = ('rocket_frame_1.txt', 'rocket_frame_2.txt')
-GARBAGE_FRAMES_FILES = (
-    'duck.txt',
-    'lamp.txt',
-    'hubble.txt',
-    'trash_large.txt',
-    'trash_small.txt',
-    'trash_xl.txt',
-)
+SHIP_FRAMES_DIR = Path('frames/ship')
+GARBAGE_FRAMES_DIR = Path('frames/garbage')
+
 year = 1957
 coroutines = []
 
@@ -34,14 +30,6 @@ def clamp(value, min_value, max_value):
 async def sleep(ticks=1):
     for _ in range(ticks):
         await asyncio.sleep(0)
-
-
-def load_frames(filenames):
-    frames = []
-    for filename in filenames:
-        with open(filename, encoding='utf-8') as file:
-            frames.append(file.read())
-    return frames
 
 
 async def change_year():
@@ -182,6 +170,16 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
         await sleep(delay)
 
 
+def load_frames_from_dir(directory):
+    frames = []
+
+    for file_path in sorted(directory.glob('*.txt')):
+        with open(file_path, encoding='utf-8') as file:
+            frames.append(file.read())
+
+    return frames
+
+
 def draw(canvas):
     global coroutines
     coroutines = []
@@ -206,7 +204,7 @@ def draw(canvas):
             blink(canvas, row, column, offset_tics, symbol)
         )
 
-    ship_frames = load_frames(SHIP_FRAMES_FILES)
+    ship_frames = load_frames_from_dir(SHIP_FRAMES_DIR)
     frame_height, frame_width = get_frame_size(ship_frames[0])
 
     center_row = max_row // 2 - frame_height // 2
@@ -216,7 +214,7 @@ def draw(canvas):
         animate_spaceship(canvas, center_row, center_column, ship_frames)
     )
 
-    garbage_frames = load_frames(GARBAGE_FRAMES_FILES)
+    garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_DIR)
     coroutines.append(
         fill_orbit_with_garbage(canvas, garbage_frames)
     )

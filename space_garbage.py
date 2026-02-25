@@ -8,8 +8,6 @@ obstacles_in_last_collisions = []
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
-    global obstacles, obstacles_in_last_collisions
-
     rows_number, columns_number = canvas.getmaxyx()
     row = 0
 
